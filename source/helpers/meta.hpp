@@ -15,7 +15,7 @@
 extern const char* initDir;
 
 void ShowError(const char* Message);
-const char* GetFileUI(/*COMDLG_FILTERSPEC rgSpec[], UINT filterCount*/);
+const char* GetFileUI(const SDL_DialogFileFilter *filters, int numFilters);
 Json::Value ParseJSON(const char* path);
 const char* File_GetLocation(const char* path);
 void File_MakeNew(const char* FilePath, ...);

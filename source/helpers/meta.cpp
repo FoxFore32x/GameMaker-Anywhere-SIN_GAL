@@ -8,6 +8,8 @@
 #include <json/json.h>
 #include <fstream>
 #include "meta.hpp"
+#include <atomic>
+
 using namespace std;
 
 //Parse a json file
@@ -48,39 +50,40 @@ const SDL_DialogFileFilter filters[] = {
 
 static std::string SelectedFile;
 
-static void SDLCALL callback(void* userdata, const char* const* filelist, int filter)
-{
-    if (!filelist) {
-        SDL_Log("An error occured: %s", SDL_GetError());
-        SelectedFile.clear();
-        return;
-    } else if (!*filelist) {
-        SDL_Log("The user did not select any file.");
-        SDL_Log("Most likely, the dialog was canceled.");
-        SelectedFile.clear();
-        return;
-    }
+struct FileDialogResult{
+    std::atomic<bool> done{false};
+    std::string path;
+};
 
-    if (filter < 0) {
-        SDL_Log("The current platform does not support fetching "
-                "the selected filter, or the user did not select"
-                " any filter.");
-        return;
-    } else if (filter < SDL_arraysize(filters)) {
-        SDL_Log("The filter selected by the user is '%s' (%s).",
-                filters[filter].pattern, filters[filter].name);
-        return;
-    }
-
-    SelectedFile = *filelist;
-    printf("Selected file: %s\n", SelectedFile.c_str());
+static void SDLCALL OnFileSelected(void *userData, const char *const *fileList, int filterIndex) {
+    auto *result = static_cast<FileDialogResult *>(userData);
+    result->path = fileList[0];
+    result->done = true;
 }
 
-//Brings up the file picker (to-do, clean up and shrink i just stole this from a microsoft example lol)
-const char* GetFileUI(/*COMDLG_FILTERSPEC rgSpec[], UINT filterCount*/){
-    SelectedFile.clear();
-    SDL_ShowOpenFileDialog(callback, NULL, window, filters, SDL_arraysize(filters), NULL, false);
-    return SelectedFile.c_str();
+//Get the user to pick a file on their system
+//numFilters means how many filters they're
+const char* GetFileUI(const SDL_DialogFileFilter *filters, int numFilters)
+{
+    static std::string path;
+    FileDialogResult result;
+
+    SDL_ShowOpenFileDialog(OnFileSelected, &result, window, filters, numFilters, nullptr, false);
+
+    //Freeze app while picking
+    while (!result.done){
+        SDL_PumpEvents();
+        SDL_Delay(10);
+    }
+
+    path = result.path;
+
+    //Cancelled or failed
+    if (path.empty()) {
+        return nullptr;
+    }
+
+    return path.c_str();
 }
 
 //Show a error message

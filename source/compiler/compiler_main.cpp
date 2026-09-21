@@ -105,8 +105,8 @@ bool InitCompiler(){
     currentsprite_count = 0;
 
     //Get the yyp
-    //COMDLG_FILTERSPEC filters[] = {{ L"GameMaker Project", L"*.yyp" }};
-    ProjectYYP = GetFileUI(/*filters, ARRAYSIZE(filters)*/);
+    SDL_DialogFileFilter filters[] = {{"GameMaker project", "yyp"}};
+    ProjectYYP = GetFileUI(filters, ARRAYSIZE(filters));
     printf("Project path: %s\n", ProjectYYP);   
 
     //GMS vars
