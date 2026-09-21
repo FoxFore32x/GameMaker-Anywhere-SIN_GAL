@@ -5,7 +5,15 @@
 #include "helpers/renderer.hpp"
 #include <SDL3/SDL_messagebox.h>
 
+#include <cstdlib>
+
 bool running = true;
+
+#if defined(_WIN32)
+    const char* initDir = "C:/";
+#elif defined (__linux__)
+    const char* initDir = getenv("HOME");
+#endif
 
 int main(int argc, char* argv[]){
     //Init the renderer

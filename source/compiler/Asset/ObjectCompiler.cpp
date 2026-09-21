@@ -1,7 +1,9 @@
 #include <iostream>
 #include <iostream>
-#include <windows.h>
-#include <shobjidl.h> 
+#if defined(_WIN32)
+    #include <windows.h>
+    #include <shobjidl.h> 
+#endif
 #include <sys/stat.h>
 #include <vector>
 #include <string>
@@ -111,16 +113,19 @@ void scr_compileobject_phase2(Json::Value yyfile, const char* spr_name, const ch
     //Get object file cpp and hpp file
     char ObjectFile[256];
     char ObjectFile_HPP[256];
-    snprintf(ObjectFile, sizeof(ObjectFile), "C:/GamemakerAnywhere/Runtime/source/objects/%s.cpp", ObjectName);
-    snprintf(ObjectFile_HPP, sizeof(ObjectFile_HPP), "C:/GamemakerAnywhere/Runtime/source/objects/%s.hpp", ObjectName);
+    snprintf(ObjectFile, sizeof(ObjectFile), "%sGamemakerAnywhere/Runtime/source/objects/%s.cpp", std::string(initDir), ObjectName);
+    snprintf(ObjectFile_HPP, sizeof(ObjectFile_HPP), "%sGamemakerAnywhere/Runtime/source/objects/%s.hpp", std::string(initDir), ObjectName);
 	
     //Create the hpp
-    char CppCreate[256];
+    /*char CppCreate[256];
     snprintf(CppCreate, sizeof(CppCreate), "powershell -Command \"New-Item -Path 'C:/GamemakerAnywhere/Runtime/source/objects/%s.cpp' -Force\"", ObjectName);
     char HppCreate[256];
     snprintf(HppCreate, sizeof(HppCreate), "powershell -Command \"New-Item -Path 'C:/GamemakerAnywhere/Runtime/source/objects/%s.hpp' -Force\"", ObjectName);
     system(CppCreate);
-    system(HppCreate);
+    system(HppCreate);*/
+
+    File_MakeNew("GamemakerAnywhere/Runtime/source/objects/%s.cpp", ObjectName);
+    File_MakeNew("GamemakerAnywhere/Runtime/source/objects/%s.hpp", ObjectName);
 
     WriteHeader(ObjectFile);
 
@@ -210,7 +215,7 @@ void scr_compileobject_phase2(Json::Value yyfile, const char* spr_name, const ch
 }
 
 void AssetID_Object(){
-	const char* roomto_idh = "C:/GamemakerAnywhere/Runtime/source/helpers/asset_toid.h";
+	const char* roomto_idh = File_GetLocation("GamemakerAnywhere/Runtime/source/helpers/asset_toid.h");
     char RoomDef[256];
     snprintf(RoomDef, sizeof(RoomDef), "#define %s %i //Object\n", ObjectName, currentobject_count);
 	File_WriteEnd(roomto_idh, RoomDef);

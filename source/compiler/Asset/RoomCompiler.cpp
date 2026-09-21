@@ -1,7 +1,9 @@
 #include <iostream>
 #include <iostream>
-#include <windows.h>
-#include <shobjidl.h> 
+#if defined(_WIN32)
+    #include <windows.h>
+    #include <shobjidl.h> 
+#endif
 #include <sys/stat.h>
 #include <vector>
 #include <string>
@@ -51,19 +53,22 @@ std::vector<RoomOut> all_rooms;
 //Create the file where the room data will be written to (called in scr_compilerooms)
 void CreateRoomFile(const char* RoomName){
     //Create the hpp
-    char CppCreate[256];
+    /*char CppCreate[256];
     snprintf(CppCreate, sizeof(CppCreate), "powershell -Command \"New-Item -Path 'C:/GamemakerAnywhere/Runtime/source/rooms/%s.cpp' -Force\"", RoomName);
     char HppCreate[256];
     snprintf(HppCreate, sizeof(HppCreate), "powershell -Command \"New-Item -Path 'C:/GamemakerAnywhere/Runtime/source/rooms/%s.hpp' -Force\"", RoomName);
 
     system(CppCreate);
-    system(HppCreate);
+    system(HppCreate);*/
+
+    File_MakeNew("GamemakerAnywhere/Runtime/source/rooms/%s.cpp", RoomName);
+    File_MakeNew("GamemakerAnywhere/Runtime/source/rooms/%s.hpp", RoomName);
 }
 
 //Assign the room cpp/hpp file paths
 void AssignRoomFilePath(){
-    snprintf(RoomFilePath_CPP, sizeof(RoomFilePath_CPP), "C:/GamemakerAnywhere/Runtime/source/rooms/%s.cpp", RoomName);
-    snprintf(RoomFilePath_HPP, sizeof(RoomFilePath_HPP), "C:/GamemakerAnywhere/Runtime/source/rooms/%s.hpp", RoomName);
+    snprintf(RoomFilePath_CPP, sizeof(RoomFilePath_CPP), "%sGamemakerAnywhere/Runtime/source/rooms/%s.cpp", std::string(initDir), RoomName);
+    snprintf(RoomFilePath_HPP, sizeof(RoomFilePath_HPP), "%sGamemakerAnywhere/Runtime/source/rooms/%s.hpp", std::string(initDir), RoomName);
 }
 
 //Writes the rooms includes
@@ -312,7 +317,7 @@ void WriteRoom_Runner(Json::Value yyfile){
 void AddTo_RoomHandler(){
     //Find closing bracket
     int insert_at = -1;
-    const char* RoomHandler = "C:/GamemakerAnywhere/Runtime/source/room_handler.cpp";
+    const char* RoomHandler = File_GetLocation("GamemakerAnywhere/Runtime/source/room_handler.cpp");
 
     std::ifstream in(RoomHandler);
     std::vector<std::string> lines;
@@ -353,7 +358,7 @@ void AddTo_RoomHandler(){
 
 //Add to the asset ID list
 void AssetID_Room(){
-	const char* roomto_idh = "C:/GamemakerAnywhere/Runtime/source/helpers/asset_toid.h";
+	const char* roomto_idh = File_GetLocation("GamemakerAnywhere/Runtime/source/helpers/asset_toid.h");
     char RoomDef[256];
     snprintf(RoomDef, sizeof(RoomDef), "#define %s %i //Room\n", RoomName, roomid_count);
 	File_WriteEnd(roomto_idh, RoomDef);
@@ -364,7 +369,7 @@ void SetDefaultRoom(){
     if (roomid_count == 0){
         char NewStartRoom[256];
         snprintf(NewStartRoom, sizeof(NewStartRoom), "int room = %s;", RoomName);
-        File_ReplaceLine("C:/GamemakerAnywhere/Runtime/source/main.cpp", "int room = -1; //DO NOT CHANGE THIS! GM CHECKS FOR \"-1\" TO EDIT IT TO THE FIRST ROOM!!!",NewStartRoom);
+        File_ReplaceLine(File_GetLocation("GamemakerAnywhere/Runtime/source/main.cpp"), "int room = -1; //DO NOT CHANGE THIS! GM CHECKS FOR \"-1\" TO EDIT IT TO THE FIRST ROOM!!!",NewStartRoom);
     }
 
     //Increase the room count!!

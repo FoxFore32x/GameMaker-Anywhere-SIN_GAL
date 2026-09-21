@@ -1,6 +1,8 @@
 #include <iostream>
-#include <windows.h>
-#include <shobjidl.h>
+#if defined(_WIN32)
+    #include <windows.h>
+    #include <shobjidl.h> 
+#endif
 #include <SDL3/SDL.h>
 #include <json/json.h>
 #include <fstream>
@@ -74,8 +76,8 @@ void VarBuiltIn_Init(){
 
 void VarBuiltIn_Write(){
 	//add to variable helper
-	const char* VarHandle_Path = "C:/GamemakerAnywhere/Runtime/source/variable_handler.h";
-	const char* VarObject_Path = "C:/GamemakerAnywhere/Runtime/source/helpers/var_in_object_running.h";
+	const char* VarHandle_Path = File_GetLocation("GamemakerAnywhere/Runtime/source/variable_handler.h");
+	const char* VarObject_Path = File_GetLocation("GamemakerAnywhere/Runtime/source/helpers/var_in_object_running.h");
 
 	char VarCreate[256];
 

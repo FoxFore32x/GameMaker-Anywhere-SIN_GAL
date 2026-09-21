@@ -1,10 +1,13 @@
 #include <iostream>
-#include <windows.h>
-#include <shobjidl.h> 
+#if defined(_WIN32)
+    #include <windows.h>
+    #include <shobjidl.h> 
+#endif
 #include <SDL3/SDL.h>
 #include "renderer.hpp"
 #include <json/json.h>
 #include <fstream>
+#include "meta.hpp"
 using namespace std;
 
 //Parse a json file
@@ -39,54 +42,45 @@ Json::Value ParseJSON(const char* path){
     return result;
 }
 
-//Brings up the file picker (to-do, clean up and shrink i just stole this from a microsoft example lol)
-const char* GetFileUI(COMDLG_FILTERSPEC rgSpec[], UINT filterCount){
-    static char filePath[MAX_PATH];
+const SDL_DialogFileFilter filters[] = {
+    { "GameMaker Project",  "yyp" }
+};
 
-    HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | 
-        COINIT_DISABLE_OLE1DDE);
-    if (SUCCEEDED(hr))
-    {
-        IFileOpenDialog *pFileOpen;
+static std::string SelectedFile;
 
-        // Create the FileOpenDialog object.
-        hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, 
-                IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
-
-        if (SUCCEEDED(hr))
-        {
-            pFileOpen->SetFileTypes(filterCount, rgSpec);
-            pFileOpen->SetFileTypeIndex(1);
-
-            // Show the Open dialog box.
-            hr = pFileOpen->Show(NULL);
-
-            // Get the file name from the dialog box.
-            if (SUCCEEDED(hr))
-            {
-                IShellItem *pItem;
-                hr = pFileOpen->GetResult(&pItem);
-                if (SUCCEEDED(hr))
-                {
-                    PWSTR pszFilePath;
-                    hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
-
-                    // Display the file name to the user.
-                    if (SUCCEEDED(hr))
-                    {
-                        WideCharToMultiByte(CP_ACP, 0, pszFilePath, -1, filePath, MAX_PATH, NULL, NULL);
-                        CoTaskMemFree(pszFilePath);
-                        return filePath;
-                    }
-                    pItem->Release();
-                }
-            }
-            pFileOpen->Release();
-        }
-        CoUninitialize();
+static void SDLCALL callback(void* userdata, const char* const* filelist, int filter)
+{
+    if (!filelist) {
+        SDL_Log("An error occured: %s", SDL_GetError());
+        SelectedFile.clear();
+        return;
+    } else if (!*filelist) {
+        SDL_Log("The user did not select any file.");
+        SDL_Log("Most likely, the dialog was canceled.");
+        SelectedFile.clear();
+        return;
     }
 
-    return "";
+    if (filter < 0) {
+        SDL_Log("The current platform does not support fetching "
+                "the selected filter, or the user did not select"
+                " any filter.");
+        return;
+    } else if (filter < SDL_arraysize(filters)) {
+        SDL_Log("The filter selected by the user is '%s' (%s).",
+                filters[filter].pattern, filters[filter].name);
+        return;
+    }
+
+    SelectedFile = *filelist;
+    printf("Selected file: %s\n", SelectedFile.c_str());
+}
+
+//Brings up the file picker (to-do, clean up and shrink i just stole this from a microsoft example lol)
+const char* GetFileUI(/*COMDLG_FILTERSPEC rgSpec[], UINT filterCount*/){
+    SelectedFile.clear();
+    SDL_ShowOpenFileDialog(callback, NULL, window, filters, SDL_arraysize(filters), NULL, false);
+    return SelectedFile.c_str();
 }
 
 //Show a error message
@@ -123,6 +117,47 @@ void File_WriteLine(const char* FilePath, int Line, const char* Message){
     }
 
     out.close();
+}
+
+const char* File_GetLocation(const char* path){
+    static std::string location;
+    
+    location = (std::filesystem::path(initDir) / path).string();
+    return location.c_str();
+}
+
+void File_MakeNew(const char* FilePath, ...){
+
+    char txt[256];
+    va_list args;
+    va_start(args, FilePath);
+    vsnprintf(txt, sizeof(txt), FilePath, args);
+    va_end(args);
+
+    std::filesystem::path path = std::filesystem::path(initDir) / txt;
+
+    std::filesystem::create_directories(path);
+    std::ofstream file(path);
+}
+
+void File_CreateDir(const char* FilePath){
+    std::filesystem::path path = std::filesystem::path(initDir) / FilePath;
+
+    std::filesystem::create_directories(path);
+}
+
+void File_RemoveAll(const char* FilePath){
+    std::filesystem::path path = std::filesystem::path(initDir) / FilePath;
+
+    std::filesystem::remove_all(path);
+}
+
+void File_CopyAll(const char* FilePath, const char* destination){
+    std::filesystem::path path = std::filesystem::path(initDir) / destination;
+
+    std::filesystem::create_directories(path);
+
+    std::filesystem::copy(FilePath, destination, std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing);
 }
 
 void File_WriteFirst(const char* FilePath, const char* Message){

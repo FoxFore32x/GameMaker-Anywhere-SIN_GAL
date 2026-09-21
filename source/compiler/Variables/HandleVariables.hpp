@@ -1,6 +1,8 @@
 #include <iostream>
-#include <windows.h>
-#include <shobjidl.h> 
+#if defined(_WIN32)
+    #include <windows.h>
+    #include <shobjidl.h> 
+#endif
 #include <SDL3/SDL.h>
 #include <json/json.h>
 #include <fstream>

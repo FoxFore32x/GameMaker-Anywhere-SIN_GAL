@@ -1,7 +1,9 @@
 #include <iostream>
 #include <iostream>
-#include <windows.h>
-#include <shobjidl.h> 
+#if defined(_WIN32)
+    #include <windows.h>
+    #include <shobjidl.h> 
+#endif
 #include <sys/stat.h>
 #include "../../helpers/renderer.hpp"
 #include "../../helpers/meta.hpp"

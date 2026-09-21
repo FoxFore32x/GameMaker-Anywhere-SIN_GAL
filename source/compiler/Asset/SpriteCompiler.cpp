@@ -1,7 +1,9 @@
 #include <iostream>
 #include <iostream>
-#include <windows.h>
-#include <shobjidl.h> 
+#if defined(_WIN32)
+    #include <windows.h>
+    #include <shobjidl.h> 
+#endif
 #include <sys/stat.h>
 #include <vector>
 #include <string>
@@ -22,14 +24,14 @@ void WriteSpriteList(std::string frame_name, int i){
     if (strcmp(ExportMode, "3DSX") == 0 || strcmp(ExportMode, "CIA") == 0){
         char SpriteFile[256];
         snprintf(SpriteFile, sizeof(SpriteFile), "%s.png\n", frame_name.c_str());
-        File_WriteEnd("C:/GamemakerAnywhere/Runtime/gfx/sprites.t3s", SpriteFile);
+        File_WriteEnd(File_GetLocation("GamemakerAnywhere/Runtime/gfx/sprites.t3s"), SpriteFile);
     }
 
     //SCF sprite list
     if (strcmp(ExportMode, "GAMECUBE") == 0 || strcmp(ExportMode, "WII") == 0){
         char TextureLine[512];
         snprintf(TextureLine, sizeof(TextureLine), "<filepath=%s.png id=\"%sFSDSDFFDGIOJHDFIOHEFAMILYGUY2DDD%d%d\" colfmt=6 />\n", frame_name.c_str(), SpriteName, rand() % 100, i); //for the sprite name, were just gonna use the custom defines so i just made it strange
-        File_WriteEnd("C:/GamemakerAnywhere/Runtime/gfx/textures.scf", TextureLine);
+        File_WriteEnd(File_GetLocation("GamemakerAnywhere/Runtime/gfx/textures.scf"), TextureLine);
     }
 }
 
@@ -41,8 +43,9 @@ void CopyImageFile(std::string frame_name){
     snprintf(ProjectDir, sizeof(ProjectDir), "%s", ProjectYYP);
     *strrchr(ProjectDir, '\\') = '\0';
     snprintf(ImagePath, sizeof(ImagePath), "%s/sprites/%s/%s.png", ProjectDir, SpriteName, frame_name.c_str());
-    snprintf(CopyCommand, sizeof(CopyCommand), "powershell -Command \"Copy-Item -Path '%s' -Destination 'C:/GamemakerAnywhere/Runtime/gfx'\"", ImagePath);
-    system(CopyCommand);
+    /*snprintf(CopyCommand, sizeof(CopyCommand), "powershell -Command \"Copy-Item -Path '%s' -Destination 'C:/GamemakerAnywhere/Runtime/gfx'\"", ImagePath);
+    system(CopyCommand);*/
+    File_CopyAll(ImagePath, "GamemakerAnywhere/Runtime/gfx");
 }
 
 void scr_savesprite_info(std::string frame_name){
@@ -51,17 +54,17 @@ void scr_savesprite_info(std::string frame_name){
     int spriteHeight;
     int channels;
 
-    snprintf(InsertChar, sizeof(InsertChar), "C:/GamemakerAnywhere/Runtime/gfx/%s.png", frame_name.c_str());
+    snprintf(InsertChar, sizeof(InsertChar), "%sGamemakerAnywhere/Runtime/gfx/%s.png", std::string(initDir), frame_name.c_str());
     if (!stbi_info(InsertChar, &spriteWidth, &spriteHeight, &channels)) {
         printf("stbi_info FAILED for: %s\n", InsertChar);
     }
     //SPRITE WIDTH
     snprintf(InsertChar, sizeof(InsertChar), ",%i", spriteWidth);
-    File_AddToEndReplace("C:/GamemakerAnywhere/Runtime/source/helpers/get_spriteinfo.cpp", "int SpriteWidths[", InsertChar);
+    File_AddToEndReplace(File_GetLocation("GamemakerAnywhere/Runtime/source/helpers/get_spriteinfo.cpp"), "int SpriteWidths[", InsertChar);
 
     //SPRITE HEIGHT
     snprintf(InsertChar, sizeof(InsertChar), "%i,", spriteHeight);
-    File_AddToEndReplace("C:/GamemakerAnywhere/Runtime/source/helpers/get_spriteinfo.cpp", "int SpriteHeights[", InsertChar);
+    File_AddToEndReplace(File_GetLocation("GamemakerAnywhere/Runtime/source/helpers/get_spriteinfo.cpp"), "int SpriteHeights[", InsertChar);
 
     /*
 	array_push(global.SpriteOriginX, yyfile.sequence.xorigin);
@@ -102,7 +105,7 @@ void scr_compilesprites(Json::Value yyfile){
     }
 	currentsprite_count--;
 	
-	const char* spriteto_idh = "C:/GamemakerAnywhere/Runtime/source/helpers/asset_toid.h";
+	const char* spriteto_idh = File_GetLocation("GamemakerAnywhere/Runtime/source/helpers/asset_toid.h");
     char SpriteDef[256];
     snprintf(SpriteDef, sizeof(SpriteDef), "#define %s %i //Sprite\n", SpriteName, currentsprite_count);
 	File_WriteEnd(spriteto_idh, SpriteDef);

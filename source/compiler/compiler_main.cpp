@@ -1,7 +1,9 @@
 #include <iostream>
 #include <iostream>
-#include <windows.h>
-#include <shobjidl.h> 
+#if defined(_WIN32)
+    #include <windows.h>
+    #include <shobjidl.h> 
+#endif
 #include <sys/stat.h>
 #include "../helpers/renderer.hpp"
 #include "../helpers/meta.hpp"
@@ -28,15 +30,27 @@ void RunCompiler(){
         
 	//Create the t3s texture list
 	if (ExportMode == "3DSX" || ExportMode == "CIA"){
-        system("powershell -Command \"New-Item -Path 'C:/GamemakerAnywhere/Runtime/gfx/sprites.t3s' -Force\"");
-        FILE* T3S = fopen("C:/GamemakerAnywhere/Runtime/gfx/sprites.t3s", "w");
+        /*std::string command = "powershell -Command \"New-Item -Path '" + std::string(initDir) + "GamemakerAnywhere/Runtime/gfx/sprites.t3s' -Force\"";
+
+        std::filesystem::path path = std::filesystem::path(initDir) / "GamemakerAnywhere/Runtime/gfx/sprites.t3s";
+
+        std::filesystem::create_directories(path.parent_path());
+        std::ofstream file(path);
+
+        system(command.c_str());*/
+
+        File_MakeNew("GamemakerAnywhere/Runtime/gfx/sprites.t3s");
+        std::string t3sFile = std::string(initDir) + "GamemakerAnywhere/Runtime/gfx/sprites.t3s";
+        FILE* T3S = fopen(t3sFile.c_str(), "w");
 		fprintf(T3S, "--atlas\n");
         fclose(T3S);
 	}
 
     //Create the scf texture list
 	if (ExportMode == "GAMECUBE" || ExportMode == "WII"){
-        system("powershell -Command \"New-Item -Path 'C:/GamemakerAnywhere/Runtime/gfx/textures.scf' -Force\"");
+        File_MakeNew("GamemakerAnywhere/Runtime/gfx/textures.scf");
+        /*std::string command = "powershell -Command \"New-Item -Path '" + std::string(initDir) + "GamemakerAnywhere/Runtime/gfx/textures.scf' -Force\"";
+        system(command.c_str());*/
 	}
 
     //Parse the yyp
@@ -58,43 +72,48 @@ bool InitCompiler(){
     struct stat sb;
 
     //Delete the old build if it exists
-    if (stat("C:/GamemakerAnywhere", &sb) == 0){
+    if (stat(File_GetLocation("GamemakerAnywhere"), &sb) == 0){
         printf("Deleting old build...\n");
-        system("powershell -Command \"Remove-Item -LiteralPath \"C:/GamemakerAnywhere\" -Recurse -Force -ErrorAction SilentlyContinue\"");
+        File_RemoveAll("GamemakerAnywhere");
         
-        while (stat("C:/GamemakerAnywhere", &sb) == 0){
+        while (stat(File_GetLocation("GamemakerAnywhere"), &sb) == 0){
             printf("Folder still not deleted...");
         }
     }
 
     //Copy the runtime folder
     printf("\nCopying runtime folder...\n");
-    char CopyCommand[256];
-    snprintf(CopyCommand, sizeof(CopyCommand), "powershell -Command \"Copy-Item -Path '%s' -Destination 'C:/GamemakerAnywhere' -Recurse\"", RuntimePath);
-    printf("%s\n", CopyCommand);
-    system("mkdir \"C:/GamemakerAnywhere\"");
-    system(CopyCommand);
+
+    printf("RuntimePath: %s\n", RuntimePath);
+    printf("Destination: %s\n", File_GetLocation("GamemakerAnywhere"));
+    printf("Before File_CopyAll\n");
+    fflush(stdout);
+
+    File_CopyAll(RuntimePath, "GamemakerAnywhere");
+
+    printf("After File_CopyAll\n");
+    fflush(stdout);
 
     //Create other folders
-    system("mkdir \"C:/GamemakerAnywhere/Runtime/source/rooms\"");
-    system("mkdir \"C:/GamemakerAnywhere/Runtime/source/objects\"");
-    system("mkdir \"C:/GamemakerAnywhere/Runtime/source/sprites\"");
-    system("mkdir \"C:/GamemakerAnywhere/Runtime/output\"");
-    system("mkdir \"C:/GamemakerAnywhere/Runtime/gfx\"");
+    File_CreateDir("GamemakerAnywhere/Runtime/source/rooms");
+    File_CreateDir("GamemakerAnywhere/Runtime/source/objects");
+    File_CreateDir("GamemakerAnywhere/Runtime/source/sprites");
+    File_CreateDir("GamemakerAnywhere/Runtime/output");
+    File_CreateDir("GamemakerAnywhere/Runtime/gfx");
 
     //Rest vars
     currentsprite_count = 0;
 
     //Get the yyp
-    COMDLG_FILTERSPEC filters[] = {{ L"GameMaker Project", L"*.yyp" }};
-    ProjectYYP = GetFileUI(filters, ARRAYSIZE(filters));
+    //COMDLG_FILTERSPEC filters[] = {{ L"GameMaker Project", L"*.yyp" }};
+    ProjectYYP = GetFileUI(/*filters, ARRAYSIZE(filters)*/);
     printf("Project path: %s\n", ProjectYYP);   
 
     //GMS vars
     VarBuiltIn_Init();
     VarBuiltIn_Write();
 
-    if (stat("C:/GamemakerAnywhere", &sb) == 0)
+    if (stat(File_GetLocation("GamemakerAnywhere"), &sb) == 0)
         return true;
     else
         return false;
@@ -132,8 +151,8 @@ void CompileAssets(Json::Value yyp_json){
 
     //Finish off compile
     //Close sprite info brackets
-    File_WriteLine("C:/GamemakerAnywhere/Runtime/source/helpers/get_spriteinfo.cpp", 11, "};"); //SPRITE WIDTH
-	File_WriteLine("C:/GamemakerAnywhere/Runtime/source/helpers/get_spriteinfo.cpp", 12+1, "};"); //SPRITE HEIGHT
+    File_WriteLine(File_GetLocation("GamemakerAnywhere/Runtime/source/helpers/get_spriteinfo.cpp"), 11, "};"); //SPRITE WIDTH
+	File_WriteLine(File_GetLocation("GamemakerAnywhere/Runtime/source/helpers/get_spriteinfo.cpp"), 12+1, "};"); //SPRITE HEIGHT
 
 }
 
